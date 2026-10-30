@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="light">
-<title>Controle de Mercadorias</title>
+<title>Loja Clau</title>
 <style>
 :root{color-scheme:light;--bg:#f5f3f9;--card:#fff;--tx:#231b33;--mut:#74698a;--ac:#6d3fc0;--ac2:#ece5f8;--bd:#e0dbea;--warn:#b9650b;--warnbg:#fdf0dc;--ok:#6d3fc0;--bad:#b3261e;
 box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
@@ -57,7 +57,7 @@ label{display:block;font-size:13px;color:var(--mut);margin:12px 0 4px}
 <body>
 <header>
   <button class="back" id="voltar">‹ Voltar para clientes</button>
-  <h1 id="tt">Minhas encomendas</h1>
+  <h1 id="tt">Loja Clau</h1>
   <button class="novoTop" id="novo">+ Nova encomenda</button>
 </header>
 
@@ -73,6 +73,7 @@ label{display:block;font-size:13px;color:var(--mut);margin:12px 0 4px}
     <button data-f="receber">A receber</button>
     <button data-f="entregar">A entregar</button>
     <button data-f="trocas" id="tbTrocas">Trocas</button>
+    <button data-f="canc" id="tbCanc">Canceladas</button>
   </div>
   <div class="srch"><input id="q" type="search" placeholder="Buscar cliente ou fornecedor"></div>
   <div id="lista"></div>
@@ -87,6 +88,16 @@ label{display:block;font-size:13px;color:var(--mut);margin:12px 0 4px}
   <div id="itens"></div>
 </div>
 
+<div class="modal" id="cm">
+  <div class="sheet">
+    <h2>Cancelar peça</h2>
+    <div id="cmInfo" style="font-size:13px;color:var(--mut);line-height:1.5"></div>
+    <label>Motivo (opcional)</label>
+    <input id="cmot" placeholder="Ex.: cliente desistiu">
+    <button class="btn del" id="cmSalvar">Cancelar esta peça</button>
+    <button class="btn sec" id="cmFechar">Voltar</button>
+  </div>
+</div>
 <div class="modal" id="tm">
   <div class="sheet">
     <h2>Troca de mercadoria</h2>
@@ -171,7 +182,7 @@ function sum(a,f){return a.reduce(function(s,i){return s+f(i)},0)}
 function hoje(){var d=new Date();return d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2)}
 function r2(x){return Math.round(x*100)/100}
 function rec(i){return sum(((i.pag||{}).pagos)||[],function(p){return p.v||0})}
-function agg(a){var v=sum(a,function(i){return i.vv||0}),r=sum(a,rec);return{v:v,r:r,a:v-r,l:v-sum(a,function(i){return i.vf||0}),ent:a.filter(function(i){return !i.entregue}).length}}
+function agg(a){a=a.filter(function(i){return !i.cancel});var v=sum(a,function(i){return i.vv||0}),r=sum(a,rec);return{v:v,r:r,a:v-r,l:v-sum(a,function(i){return i.vf||0}),ent:a.filter(function(i){return !i.entregue}).length}}
 function norm(i){
   var p=i.pag||{};if(p.pagos)return;var n=p.parc&&p.parc.length,pg=[];
   if(p.modo==="parcelado"&&n){p.parc.forEach(function(x){if(x)pg.push({v:r2((i.vv||0)/n),d:""})});i.pag={modo:"parcelado",n:n,pagos:pg}}
@@ -199,9 +210,14 @@ function trocaHTML(i){
   var t=i.troca,h='<div style="margin-top:6px">';
   if(t&&!t.resolvida)h+='<span class="tag t1">Troca pendente: '+esc(t.motivo)+'</span>'+(t.obs?'<span>'+esc(t.obs)+'</span>':'')+'<button class="chip on" data-act="tr_ok" data-id="'+i.id+'">✓ Troca resolvida</button><button class="chip" data-act="tr" data-id="'+i.id+'">Editar troca</button>';
   else{if(t&&t.resolvida)h+='<span class="tag t3">Troca resolvida em '+dt(t.resolvida)+'</span>';h+='<button class="chip" data-act="tr" data-id="'+i.id+'">Pedir troca</button>'}
-  return h+'</div>';
+  return h+'<button class="chip" data-act="canc" data-id="'+i.id+'">Cancelar peça</button></div>';
+}
+function cancHTML(i,full){
+  var r=rec(i),c=i.cancel;
+  return '<div class="item" data-id="'+i.id+'" style="opacity:.8">'+(i.foto?'<img src="'+i.foto+'" alt="">':'<div class="ph">sem foto</div>')+'<div class="inf">'+(full?'<b>'+esc(nomeC(i.clienteId))+'</b>':'')+(i.desc?'<span>'+esc(i.desc)+'</span>':'')+'<span>Buscar em: '+esc(i.forn)+'</span><span class="tag" style="background:var(--bd);color:var(--mut)">Cancelada'+(c.data?' em '+dt(c.data).slice(0,5):'')+'</span>'+(c.motivo?'<span>'+esc(c.motivo)+'</span>':'')+(r>0.005?'<span class="tag t1">Já recebido '+brl(r)+' · lembrar de devolver</span>':'')+'<div><button class="chip" data-act="reat" data-id="'+i.id+'">Reativar peça</button></div></div></div>';
 }
 function itemHTML(i){
+  if(i.cancel)return cancHTML(i,false);
   var lu=(i.vv||0)-(i.vf||0);
   var tg=i.entregue?'<span class="tag t3">Entregue em '+dt(i.entregue)+'</span>':i.retirada?'<span class="tag t2">Retirado em '+dt(i.retirada)+' · falta entregar</span><button class="chip" data-act="unret" data-id="'+i.id+'">Desfazer retirada</button>':'<span class="tag t1">Falta buscar</span>';
   return '<div class="item" data-id="'+i.id+'">'+(i.foto?'<img src="'+i.foto+'" alt="">':'<div class="ph">sem foto</div>')+
@@ -210,7 +226,7 @@ function itemHTML(i){
 function render(){
   var cv=vista!==null;
   $("home").style.display=cv?"none":"block";$("cli").style.display=cv?"block":"none";$("voltar").style.display=cv?"inline-block":"none";
-  $("tt").textContent=cv?nomeC(vista):"Minhas encomendas";
+  $("tt").textContent=cv?nomeC(vista):"Loja Clau";
   if(cv){
     var its=itensDe(vista).sort(function(a,b){return b.id-a.id}),g=agg(its);
     $("cV").textContent=brl(g.v);$("cR").textContent=brl(g.r);$("cA").textContent=brl(g.a);
@@ -219,11 +235,18 @@ function render(){
   }
   var all=agg(D.itens);
   $("rV").textContent=brl(all.v);$("rA").textContent=brl(all.a);$("rL").textContent=brl(all.l);$("rL").className="lucro"+(all.l<0?" neg":"");
-  var pend=D.itens.filter(function(i){return !i.retirada&&!i.entregue});
+  var pend=D.itens.filter(function(i){return !i.retirada&&!i.entregue&&!i.cancel});
   $("tbBuscar").textContent="A buscar"+(pend.length?" ("+pend.length+")":"");
-  var tr=D.itens.filter(function(i){return i.troca&&!i.troca.resolvida});
+  var tr=D.itens.filter(function(i){return i.troca&&!i.troca.resolvida&&!i.cancel});
   $("tbTrocas").textContent="Trocas"+(tr.length?" ("+tr.length+")":"");
+  var cn=D.itens.filter(function(i){return i.cancel});
+  $("tbCanc").textContent="Canceladas"+(cn.length?" ("+cn.length+")":"");
   var q=$("q").value.toLowerCase(),h="";
+  if(filtro==="canc"){
+    cn.filter(function(i){return !q||(nomeC(i.clienteId)+" "+i.forn).toLowerCase().indexOf(q)>-1}).sort(function(a,b){return b.id-a.id}).forEach(function(i){h+=cancHTML(i,true)});
+    $("lista").innerHTML=h||'<div class="vazio">Nenhuma peça cancelada.</div>';
+    return;
+  }
   if(filtro==="trocas"){
     tr.filter(function(i){return !q||(nomeC(i.clienteId)+" "+i.forn).toLowerCase().indexOf(q)>-1}).forEach(function(i){
       h+='<div class="item" data-id="'+i.id+'">'+(i.foto?'<img src="'+i.foto+'" alt="">':'<div class="ph">sem foto</div>')+'<div class="inf"><b>'+esc(nomeC(i.clienteId))+'</b>'+(i.desc?'<span>'+esc(i.desc)+'</span>':'')+'<span>Buscar em: '+esc(i.forn)+'</span><span class="tag t1">'+esc(i.troca.motivo)+(i.troca.data?' · desde '+dt(i.troca.data).slice(0,5):'')+'</span>'+(i.troca.obs?'<span>'+esc(i.troca.obs)+'</span>':'')+'<div><button class="chip on" data-act="tr_ok" data-id="'+i.id+'">✓ Troca resolvida</button><button class="chip" data-act="tr" data-id="'+i.id+'">Editar</button></div></div></div>'});
@@ -247,7 +270,7 @@ function render(){
      return !q||(x.c.nome+" "+x.a.map(function(i){return i.forn}).join(" ")).toLowerCase().indexOf(q)>-1;
    }).sort(function(a,b){return b.last-a.last});
   cs.forEach(function(x){
-    var f=x.a.filter(function(i){return i.foto})[0],n=x.a.length;
+    var f=x.a.filter(function(i){return i.foto})[0],n=x.a.filter(function(i){return !i.cancel}).length;
     h+='<div class="item" data-c="'+x.c.id+'">'+(f?'<img src="'+f.foto+'" alt="">':'<div class="ph">sem foto</div>')+
     '<div class="inf"><b>'+esc(x.c.nome)+'</b><span>'+n+(n===1?' mercadoria':' mercadorias')+' · Vendido '+brl(x.g.v)+'</span>'+
     (x.g.a>0.005?'<span class="tag t1">Falta receber '+brl(x.g.a)+'</span>':x.g.a<-0.005?'<span class="tag t3">Pago a mais '+brl(-x.g.a)+'</span>':'<span class="tag t3">Tudo pago</span>')+
@@ -316,6 +339,7 @@ $("lista").onclick=function(e){
   if(b){var a=b.dataset.act,it=itemPor(+b.dataset.id);
     if(a==="tr_ok"){it.troca.resolvida=hoje();gravar();render();return}
     if(a==="tr"){abrirTroca(it.id);return}
+    if(a==="reat"){it.cancel=null;gravar();render();return}
     it.retirada=hoje();gravar();render();mostrarUndo(it.id);return}
   var t=e.target.closest(".item");if(!t)return;
   if(t.dataset.id){abrir(parseInt(t.dataset.id));return}
@@ -334,6 +358,8 @@ function abrirPag(id,idx){
 }
 $("itens").onclick=function(e){
   var b=e.target.closest("button[data-act]");
+  if(b&&b.dataset.act==="canc"){abrirCanc(+b.dataset.id);return}
+  if(b&&b.dataset.act==="reat"){itemPor(+b.dataset.id).cancel=null;gravar();render();return}
   if(b&&b.dataset.act==="tr"){abrirTroca(+b.dataset.id);return}
   if(b&&b.dataset.act==="tr_ok"){itemPor(+b.dataset.id).troca.resolvida=hoje();gravar();render();return}
   if(b&&b.dataset.act==="unret"){var u=itemPor(+b.dataset.id);u.retirada="";gravar();render();return}
@@ -352,6 +378,17 @@ $("pmExcluir").onclick=function(){
   if(confirm("Excluir este pagamento?")){itemPor(payId).pag.pagos.splice(payIdx,1);gravar();$("pm").classList.remove("on");render()}
 };
 $("voltar").onclick=function(){vista=null;render()};
+var cancId=null;
+function abrirCanc(id){
+  cancId=id;var i=itemPor(id),r=rec(i);
+  $("cmInfo").innerHTML=esc(nomeC(i.clienteId))+(i.desc?" · "+esc(i.desc):"")+(r>0.005?"<br>Atenção: este cliente já pagou "+brl(r)+". Lembre de devolver, se for o caso.":"");
+  $("cmot").value="";$("cm").classList.add("on");
+}
+$("cmFechar").onclick=function(){$("cm").classList.remove("on")};
+$("cmSalvar").onclick=function(){
+  itemPor(cancId).cancel={data:hoje(),motivo:$("cmot").value.trim()};
+  if(gravar()){$("cm").classList.remove("on");render()}
+};
 var trocaId=null;
 function abrirTroca(id){
   trocaId=id;var i=itemPor(id),t=i.troca&&!i.troca.resolvida?i.troca:null;
