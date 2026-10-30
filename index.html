@@ -52,10 +52,19 @@ label{display:block;font-size:13px;color:var(--mut);margin:12px 0 4px}
 .btn.del{background:transparent;color:var(--bad);border:1px solid var(--bad);margin-top:8px}
 .vazio{text-align:center;color:var(--mut);padding:40px 24px}
 .box{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:4px 12px 12px;margin-top:12px}
+.topbar{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12px;color:var(--mut);margin-bottom:6px}
+.topbar button{border:0;background:none;color:var(--ac);font:inherit;font-size:13px;font-weight:bold;padding:4px 0}
+#sync.err{color:var(--bad);font-weight:bold}
+#login{position:fixed;inset:0;z-index:50;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:24px}
+#login .card{width:100%;max-width:380px;background:var(--card);border:1px solid var(--bd);border-radius:16px;padding:22px 18px}
+#login h2{margin:0 0 4px;font-size:22px}
+#lgErr{color:var(--bad);font-size:13px;margin-top:10px;min-height:18px}
+.lnk{border:0;background:none;color:var(--ac);font:inherit;font-size:14px;padding:10px 0 0;display:block;width:100%;text-align:center}
 </style>
 </head>
 <body>
 <header>
+  <div class="topbar"><span id="sync"></span><button id="sair" style="display:none">Sair</button></div>
   <button class="back" id="voltar">‹ Voltar para clientes</button>
   <h1 id="tt">Loja Clau</h1>
   <button class="novoTop" id="novo">+ Nova encomenda</button>
@@ -168,13 +177,181 @@ label{display:block;font-size:13px;color:var(--mut);margin:12px 0 4px}
   </div>
 </div>
 
+<div id="login">
+  <div class="card">
+    <div id="lgLoad" style="display:none;text-align:center">
+      <h2>Loja Clau</h2>
+      <p id="lgLoadTxt" style="color:var(--mut)">Carregando…</p>
+      <button class="btn" id="lgRetry" style="display:none">Tentar de novo</button>
+      <button class="btn sec" id="lgSair2" style="display:none">Sair</button>
+    </div>
+    <div id="lgForm">
+      <h2>Loja Clau</h2>
+      <div style="color:var(--mut);font-size:14px" id="lgSub">Entre para ver suas encomendas</div>
+      <label>E-mail</label>
+      <input id="lgEmail" type="email" autocomplete="username" inputmode="email">
+      <label>Senha</label>
+      <input id="lgSenha" type="password" autocomplete="current-password">
+      <div id="lgErr"></div>
+      <button class="btn" id="lgEntrar">Entrar</button>
+      <button class="lnk" id="lgModo">Primeiro acesso? Criar conta</button>
+      <button class="lnk" id="lgEsqueci">Esqueci minha senha</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script>
-var KEY="mercadorias_v2",OLD="mercadorias_v1",D={clientes:[],itens:[]},filtro="todos",vista=null,editId=null,foto="";
+var KEY="mercadorias_v2",OLD="mercadorias_v1",UIDK="mercadorias_uid",D={clientes:[],itens:[]},filtro="todos",vista=null,editId=null,foto="";
 function $(i){return document.getElementById(i)}
 function brl(n){return (n||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"})}
 function dt(s){if(!s)return"";var p=s.split("-");return p[2]+"/"+p[1]+"/"+p[0]}
 function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
-function gravar(q){try{localStorage.setItem(KEY,JSON.stringify(D));return true}catch(e){if(!q)alert("Não foi possível salvar. O espaço do aparelho pode estar cheio.");return false}}
+
+/* ===== Firebase ===== */
+var firebaseConfig={
+  apiKey:"AIzaSyAQVTyMt5UCQQgIfwrpmqKHHpetE-LXVuQ",
+  authDomain:"loja-clau.firebaseapp.com",
+  projectId:"loja-clau",
+  storageBucket:"loja-clau.firebasestorage.app",
+  messagingSenderId:"39195066682",
+  appId:"1:39195066682:web:ab6db44710e14ac1a61003"
+};
+var fb=null,auth=null,db=null,user=null,ready=false,synced={},unsubs=[],modoCriar=false;
+try{firebase.initializeApp(firebaseConfig);auth=firebase.auth();db=firebase.firestore()}catch(e){console.error(e)}
+
+function sj(o){return JSON.stringify(o,function(k,v){if(v&&typeof v==="object"&&!Array.isArray(v)){var r={};Object.keys(v).sort().forEach(function(x){r[x]=v[x]});return r}return v})}
+function status(t,erro){var s=$("sync");s.textContent=t;s.className=erro?"err":""}
+function base(){return db.collection("users").doc(user.uid)}
+function salvarLocal(){try{localStorage.setItem(KEY,JSON.stringify(D));if(user)localStorage.setItem(UIDK,user.uid)}catch(e){}}
+
+function sync(){
+  if(!user||!ready)return;
+  var cur={},ops=[],k;
+  D.clientes.forEach(function(c){cur["clientes/"+c.id]=c});
+  D.itens.forEach(function(i){cur["itens/"+i.id]=i});
+  for(k in cur){var s=sj(cur[k]);if(synced[k]!==s)ops.push({k:k,o:cur[k],s:s,old:synced[k]})}
+  for(k in synced){if(!(k in cur))ops.push({k:k,del:true,old:synced[k]})}
+  if(!ops.length)return;
+  ops.forEach(function(p){if(p.del)delete synced[p.k];else synced[p.k]=p.s});
+  var lotes=[],lote=[],bytes=0;
+  ops.forEach(function(p){
+    var sz=p.s?p.s.length:0;
+    if(lote.length&&(lote.length>=400||bytes+sz>3000000)){lotes.push(lote);lote=[];bytes=0}
+    lote.push(p);bytes+=sz;
+  });
+  if(lote.length)lotes.push(lote);
+  status("Salvando…");
+  Promise.all(lotes.map(function(l){
+    var b=db.batch();
+    l.forEach(function(p){
+      var parts=p.k.split("/"),ref=base().collection(parts[0]).doc(parts[1]);
+      if(p.del)b.delete(ref);else b.set(ref,JSON.parse(JSON.stringify(p.o)));
+    });
+    return b.commit().catch(function(e){l.forEach(function(p){if(p.old===undefined)delete synced[p.k];else synced[p.k]=p.old});throw e});
+  })).then(function(){status("✓ Salvo na nuvem")}).catch(function(e){
+    console.error(e);status("Erro ao salvar na nuvem",true);
+    alert("Não foi possível salvar na nuvem. Verifique a internet e as regras do Firestore.\n\n"+(e&&e.message?e.message:""));
+  });
+}
+function gravar(q){salvarLocal();sync();return true}
+
+function ouvir(){
+  var b=base();
+  unsubs.push(b.collection("clientes").onSnapshot(function(sn){
+    var a=[];Object.keys(synced).forEach(function(k){if(k.indexOf("clientes/")===0)delete synced[k]});
+    sn.forEach(function(d){var x=d.data();a.push(x);synced["clientes/"+d.id]=sj(x)});
+    D.clientes=a;aposRemoto();
+  },erroSnap));
+  unsubs.push(b.collection("itens").onSnapshot(function(sn){
+    var a=[];Object.keys(synced).forEach(function(k){if(k.indexOf("itens/")===0)delete synced[k]});
+    sn.forEach(function(d){var x=d.data();a.push(x);synced["itens/"+d.id]=sj(x)});
+    a.forEach(norm);D.itens=a;aposRemoto();
+  },erroSnap));
+}
+function erroSnap(e){console.error(e);status("Sem conexão com a nuvem",true)}
+function aposRemoto(){
+  if(vista!==null&&!nomeC(vista))vista=null;
+  salvarLocal();render();
+  if(!$("sync").className)status("✓ Sincronizado");
+}
+function parar(){unsubs.forEach(function(u){try{u()}catch(e){}});unsubs=[];ready=false;synced={}}
+
+function iniciar(){
+  mostrarCarregando("Carregando seus dados…",false);
+  var b=base();
+  Promise.all([b.collection("clientes").get(),b.collection("itens").get()]).then(function(r){
+    var cs=r[0],is=r[1],vazio=cs.empty&&is.empty,temLocal=D.clientes.length||D.itens.length;
+    if(!vazio){
+      var a=[],it=[];synced={};
+      cs.forEach(function(d){var x=d.data();a.push(x);synced["clientes/"+d.id]=sj(x)});
+      is.forEach(function(d){var x=d.data();it.push(x);synced["itens/"+d.id]=sj(x)});
+      it.forEach(norm);D.clientes=a;D.itens=it;
+    }else if(!temLocal){D={clientes:[],itens:[]}}
+    ready=true;
+    if(vazio&&temLocal)sync();   /* primeira vez: sobe os dados que já estavam no aparelho */
+    salvarLocal();ouvir();render();
+    $("login").style.display="none";$("sair").style.display="inline-block";
+    status("✓ Sincronizado");
+  }).catch(function(e){
+    console.error(e);
+    var m=(e&&e.code==="permission-denied")?"O Firestore recusou o acesso. Confira as regras publicadas.":"Não consegui carregar. Verifique a internet.";
+    mostrarCarregando(m,true);
+  });
+}
+function mostrarCarregando(t,erro){
+  $("login").style.display="flex";$("lgForm").style.display="none";$("lgLoad").style.display="block";
+  $("lgLoadTxt").textContent=t;$("lgRetry").style.display=erro?"block":"none";$("lgSair2").style.display=erro?"block":"none";
+}
+function mostrarForm(){
+  $("login").style.display="flex";$("lgLoad").style.display="none";$("lgForm").style.display="block";$("sair").style.display="none";
+}
+function msgErro(e){
+  var c=e&&e.code||"";
+  var m={"auth/invalid-credential":"E-mail ou senha incorretos.","auth/wrong-password":"Senha incorreta.","auth/user-not-found":"Não existe conta com esse e-mail.","auth/invalid-email":"E-mail inválido.","auth/email-already-in-use":"Esse e-mail já tem conta. Use Entrar.","auth/weak-password":"A senha precisa ter pelo menos 6 caracteres.","auth/too-many-requests":"Muitas tentativas. Aguarde um pouco.","auth/network-request-failed":"Sem internet.","auth/operation-not-allowed":"Login por e-mail/senha não está ativado no Firebase.","auth/unauthorized-domain":"Este site não está nos domínios autorizados do Firebase."};
+  return m[c]||("Erro: "+(c||(e&&e.message)||"desconhecido"));
+}
+$("lgEntrar").onclick=function(){
+  var e=$("lgEmail").value.trim(),s=$("lgSenha").value;$("lgErr").textContent="";
+  if(!e||!s){$("lgErr").textContent="Digite e-mail e senha.";return}
+  var p=modoCriar?auth.createUserWithEmailAndPassword(e,s):auth.signInWithEmailAndPassword(e,s);
+  p.catch(function(x){$("lgErr").textContent=msgErro(x)});
+};
+$("lgSenha").onkeydown=function(e){if(e.key==="Enter")$("lgEntrar").click()};
+$("lgModo").onclick=function(){
+  modoCriar=!modoCriar;
+  $("lgEntrar").textContent=modoCriar?"Criar conta":"Entrar";
+  $("lgModo").textContent=modoCriar?"Já tenho conta. Entrar":"Primeiro acesso? Criar conta";
+  $("lgSub").textContent=modoCriar?"Crie seu acesso com e-mail e senha":"Entre para ver suas encomendas";
+  $("lgSenha").autocomplete=modoCriar?"new-password":"current-password";$("lgErr").textContent="";
+};
+$("lgEsqueci").onclick=function(){
+  var e=$("lgEmail").value.trim();
+  if(!e){$("lgErr").textContent="Digite seu e-mail acima e toque de novo.";return}
+  auth.sendPasswordResetEmail(e).then(function(){$("lgErr").style.color="var(--ok)";$("lgErr").textContent="Enviamos um e-mail para redefinir a senha."}).catch(function(x){$("lgErr").style.color="";$("lgErr").textContent=msgErro(x)});
+};
+$("lgRetry").onclick=function(){iniciar()};
+function sairConta(){
+  if(!confirm("Sair da conta?"))return;
+  auth.signOut();
+}
+$("sair").onclick=sairConta;$("lgSair2").onclick=function(){auth.signOut()};
+if(auth)auth.onAuthStateChanged(function(u){
+  if(u){
+    user=u;
+    var antes=null;try{antes=localStorage.getItem(UIDK)}catch(e){}
+    if(antes&&antes!==u.uid)D={clientes:[],itens:[]};  /* cache era de outra conta */
+    iniciar();
+  }else{
+    parar();user=null;D={clientes:[],itens:[]};vista=null;
+    try{localStorage.removeItem(KEY);localStorage.removeItem(UIDK)}catch(e){}
+    render();mostrarForm();status("");
+  }
+});else{mostrarCarregando("Não foi possível carregar o Firebase. Verifique a internet.",false)}
+
+/* ===== App ===== */
 function cid(nome){nome=nome.trim();var k=nome.toLowerCase();var c=D.clientes.filter(function(x){return x.nome.toLowerCase()===k})[0];if(!c){c={id:Date.now()+Math.floor(Math.random()*1000),nome:nome};D.clientes.push(c)}return c.id}
 function nomeC(id){var c=D.clientes.filter(function(x){return x.id===id})[0];return c?c.nome:""}
 function itensDe(id){return D.itens.filter(function(i){return i.clienteId===id})}
@@ -192,7 +369,7 @@ function carregar(){
   try{var s=localStorage.getItem(KEY);if(s){D=JSON.parse(s);D.itens.forEach(norm);return}}catch(e){}
   try{var o=JSON.parse(localStorage.getItem(OLD)||"[]");
     o.forEach(function(i){i.clienteId=cid(i.cliente||"Sem nome");delete i.cliente;i.pag={modo:"avista",n:1,pagos:[]};D.itens.push(i)});
-    if(o.length)gravar(true)}catch(e){}
+    if(o.length)salvarLocal()}catch(e){}
 }
 function limpar(){D.clientes=D.clientes.filter(function(c){return itensDe(c.id).length});if(vista!==null&&!nomeC(vista))vista=null}
 
@@ -273,7 +450,7 @@ function render(){
     var f=x.a.filter(function(i){return i.foto})[0],n=x.a.filter(function(i){return !i.cancel}).length;
     h+='<div class="item" data-c="'+x.c.id+'">'+(f?'<img src="'+f.foto+'" alt="">':'<div class="ph">sem foto</div>')+
     '<div class="inf"><b>'+esc(x.c.nome)+'</b><span>'+n+(n===1?' mercadoria':' mercadorias')+' · Vendido '+brl(x.g.v)+'</span>'+
-    (x.g.a>0.005?'<span class="tag t1">Falta receber '+brl(x.g.a)+'</span>':x.g.a<-0.005?'<span class="tag t3">Pago a mais '+brl(-x.g.a)+'</span>':'<span class="tag t3">Tudo pago</span>')+
+    (x.g.a>0.005?'<span class="tag t1" style="font-size:14px;font-weight:bold">Deve '+brl(x.g.a)+'</span>':x.g.a<-0.005?'<span class="tag t3">Pago a mais '+brl(-x.g.a)+'</span>':'<span class="tag t3">Não deve nada</span>')+
     (x.g.ent?'<span class="tag t2">'+x.g.ent+' a entregar</span>':'')+'</div><div class="seta">›</div></div>';
   });
   $("lista").innerHTML=h||'<div class="vazio">Nada por aqui ainda.<br>Toque em <b>+ Nova encomenda</b> para cadastrar.</div>';
