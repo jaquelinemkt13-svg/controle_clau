@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light">
+<title>Loja Clau</title>
+<style>
+:root{color-scheme:light;--bg:#f5f3f9;--card:#fff;--tx:#231b33;--mut:#74698a;--ac:#6d3fc0;--ac2:#ece5f8;--bd:#e0dbea;--warn:#b9650b;--warnbg:#fdf0dc;--ok:#6d3fc0;--bad:#b3261e;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+
+
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--tx);font-family:"Trebuchet MS","Segoe UI",system-ui,sans-serif;font-size:16px;max-width:560px;margin-inline:auto;padding-bottom:40px}
+header{padding:18px 16px 6px}
+h1{font-size:22px;margin:0 0 12px}
+.back{display:none;border:0;background:none;color:var(--ac);font:inherit;font-weight:bold;padding:0 0 8px}
+.novoTop{display:block;width:100%;background:var(--ac);color:#fff;border:0;border-radius:14px;padding:18px;font-size:18px;font-weight:bold;box-shadow:0 3px 10px rgba(0,0,0,.2)}
+.res{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:0 16px}
+.res div{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:8px 10px}
+.res small{display:block;color:var(--mut);font-size:12px}
+.res b{font-size:15px}
+.tabs{display:flex;gap:6px;padding:12px 16px 8px;overflow-x:auto}
+.tabs button{flex:none;border:1px solid var(--bd);background:var(--card);color:var(--tx);padding:8px 14px;border-radius:20px;font-size:14px}
+.tabs button.on{background:var(--ac);color:#fff;border-color:var(--ac)}
+.srch{padding:0 16px 8px}
+input,select{width:100%;padding:12px;border:1px solid var(--bd);border-radius:10px;background:var(--card);color:var(--tx);font:inherit}
+label{display:block;font-size:13px;color:var(--mut);margin:12px 0 4px}
+.item{display:flex;gap:12px;margin:8px 16px;padding:10px;background:var(--card);border:1px solid var(--bd);border-radius:12px}
+.item img,.ph{width:72px;height:72px;border-radius:8px;object-fit:cover;flex:none;background:var(--ac2)}
+.ph{display:grid;place-items:center;color:var(--mut);font-size:11px;text-align:center}
+.inf{flex:1;min-width:0}
+.inf b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.inf span{display:block;font-size:13px;color:var(--mut)}
+.seta{align-self:center;color:var(--mut);font-size:24px}
+.tag{display:inline-block;font-size:12px;padding:2px 8px;border-radius:10px;margin:4px 4px 0 0}
+.t1,.t2{background:var(--warnbg);color:var(--warn)}.t3{background:var(--ac2);color:var(--ok)}
+.lucro{color:var(--ok);font-weight:bold}.lucro.neg{color:var(--bad)}
+.chip{border:1px solid var(--bd);background:var(--card);color:var(--tx);border-radius:16px;padding:7px 12px;font-size:13px;margin:6px 4px 0 0}
+.chip.on{background:var(--ac);color:#fff;border-color:var(--ac)}
+.chip.no{background:var(--warnbg);color:var(--warn);border-color:var(--warn)}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:flex-end;justify-content:center;z-index:20}
+.modal.on{display:flex}
+.sheet{background:var(--bg);width:100%;max-width:560px;max-height:94%;overflow-y:auto;border-radius:18px 18px 0 0;padding:16px 16px calc(20px + env(safe-area-inset-bottom,0px))}
+.sheet h2{margin:0 0 4px;font-size:19px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.foto{display:flex;align-items:center;gap:12px}
+.foto img,.foto .ph{width:96px;height:96px}
+.btn{border:0;border-radius:10px;padding:13px;font:inherit;font-weight:bold;width:100%;margin-top:14px;background:var(--ac);color:#fff}
+.btn.sec{background:var(--card);color:var(--tx);border:1px solid var(--bd);font-weight:normal;margin-top:8px}
+.btn.del{background:transparent;color:var(--bad);border:1px solid var(--bad);margin-top:8px}
+.vazio{text-align:center;color:var(--mut);padding:40px 24px}
+.box{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:4px 12px 12px;margin-top:12px}
+</style>
+</head>
+<body>
+<header>
+  <button class="back" id="voltar">‹ Voltar para clientes</button>
+  <h1 id="tt">Loja Clau</h1>
+  <button class="novoTop" id="novo">+ Nova encomenda</button>
+</header>
+
+<div id="home">
+  <div class="res" style="margin-top:12px">
+    <div><small>Vendido</small><b id="rV">R$ 0</b></div>
+    <div><small>Falta receber</small><b id="rA">R$ 0</b></div>
+    <div><small>Lucro</small><b id="rL" class="lucro">R$ 0</b></div>
+  </div>
+  <div class="tabs" id="tabs">
+    <button data-f="todos" class="on">Todos</button>
+    <button data-f="buscar" id="tbBuscar">A buscar</button>
+    <button data-f="receber">A receber</button>
+    <button data-f="entregar">A entregar</button>
+    <button data-f="trocas" id="tbTrocas">Trocas</button>
+    <button data-f="canc" id="tbCanc">Canceladas</button>
+  </div>
+  <div class="srch"><input id="q" type="search" placeholder="Buscar cliente ou fornecedor"></div>
+  <div id="lista"></div>
+</div>
+
+<div id="cli" style="display:none">
+  <div class="res" style="margin:12px 0 8px">
+    <div><small>Vendido</small><b id="cV">R$ 0</b></div>
+    <div><small>Recebido</small><b id="cR">R$ 0</b></div>
+    <div><small>Falta receber</small><b id="cA">R$ 0</b></div>
+  </div>
+  <div id="itens"></div>
+</div>
+
+<div class="modal" id="cm">
+  <div class="sheet">
+    <h2>Cancelar peça</h2>
+    <div id="cmInfo" style="font-size:13px;color:var(--mut);line-height:1.5"></div>
+    <label>Motivo (opcional)</label>
+    <input id="cmot" placeholder="Ex.: cliente desistiu">
+    <button class="btn del" id="cmSalvar">Cancelar esta peça</button>
+    <button class="btn sec" id="cmFechar">Voltar</button>
+  </div>
+</div>
+<div class="modal" id="tm">
+  <div class="sheet">
+    <h2>Troca de mercadoria</h2>
+    <div id="tmInfo" style="font-size:13px;color:var(--mut)"></div>
+    <label>Motivo</label>
+    <select id="tmot"><option>Defeito</option><option>Não serviu</option><option>Outro</option></select>
+    <label>Observação (opcional)</label>
+    <input id="tobs" placeholder="Ex.: precisa do tamanho 40">
+    <button class="btn" id="tmSalvar">Salvar troca</button>
+    <button class="btn sec" id="tmFechar">Cancelar</button>
+    <button class="btn del" id="tmCancel" style="display:none">Cancelar pedido de troca</button>
+  </div>
+</div>
+<div id="undo" style="display:none;position:fixed;left:16px;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));max-width:528px;margin:auto;background:#231b33;color:#fff;border-radius:12px;padding:14px 16px;z-index:30;align-items:center;justify-content:space-between;gap:12px"><span>Marcado como retirado</span><button id="undoBtn" style="background:none;border:0;color:#d9c8ff;font:inherit;font-weight:bold">Desfazer</button></div>
+<datalist id="dl"></datalist>
+<div class="modal" id="modal">
+  <div class="sheet">
+    <h2 id="mt">Nova encomenda</h2>
+    <label>Nome do cliente</label>
+    <input id="cliente" list="dl" placeholder="Digite ou escolha um cliente" autocomplete="off">
+    <label>Onde buscar (fornecedor)</label>
+    <input id="forn" placeholder="Ex.: Loja do Brás">
+    <label>Imagem do produto</label>
+    <div class="foto">
+      <div id="prev" class="ph">sem foto</div>
+      <div style="flex:1">
+        <input type="file" id="file" accept="image/*" hidden>
+        <button class="btn sec" style="margin:0" id="pick">Escolher da galeria</button>
+      </div>
+    </div>
+    <label>Descrição (opcional)</label>
+    <input id="desc" placeholder="Ex.: tamanho 38, aro 16, cor preta">
+    <div class="row2">
+      <div><label>Valor do fornecedor</label><input id="vf" type="number" inputmode="decimal" step="0.01" placeholder="0,00"></div>
+      <div><label>Valor vendido</label><input id="vv" type="number" inputmode="decimal" step="0.01" placeholder="0,00"></div>
+    </div>
+    <div id="lucroVis" style="font-size:14px;margin-top:8px"></div>
+    <label>Data entregue ao cliente</label>
+    <input id="de" type="date">
+    <div class="box">
+      <label>Forma de pagamento</label>
+      <select id="pg"><option value="avista">À vista</option><option value="parc">Parcelado</option></select>
+      <div id="parcBox" style="display:none">
+        <label>Quantidade de parcelas</label>
+        <input id="np" type="number" inputmode="numeric" min="2" max="36" value="2">
+        <div id="parcInfo" style="font-size:13px;color:var(--mut);margin-top:6px"></div>
+      </div>
+      <div id="jaBox"><label>Valor já pago (opcional)</label><input id="jp" type="number" inputmode="decimal" step="0.01" placeholder="0,00"></div>
+      <div id="pgDica" style="display:none;font-size:13px;color:var(--mut);margin-top:10px">Para registrar ou corrigir pagamentos, use o cartão da mercadoria.</div>
+    </div>
+    <button class="btn" id="salvar">Salvar</button>
+    <button class="btn sec" id="fechar">Cancelar</button>
+    <button class="btn del" id="excluir" style="display:none">Excluir mercadoria</button>
+  </div>
+</div>
+
+<div class="modal" id="pm">
+  <div class="sheet">
+    <h2 id="pmt">Registrar pagamento</h2>
+    <div id="pmInfo" style="font-size:13px;color:var(--mut);line-height:1.5"></div>
+    <label>Valor pago</label>
+    <input id="pv" type="number" inputmode="decimal" step="0.01" placeholder="0,00">
+    <label>Data</label>
+    <input id="pd" type="date">
+    <button class="btn" id="pmSalvar">Salvar pagamento</button>
+    <button class="btn sec" id="pmFechar">Cancelar</button>
+    <button class="btn del" id="pmExcluir" style="display:none">Excluir pagamento</button>
+  </div>
+</div>
+
+<script>
+var KEY="mercadorias_v2",OLD="mercadorias_v1",D={clientes:[],itens:[]},filtro="todos",vista=null,editId=null,foto="";
+function $(i){return document.getElementById(i)}
+function brl(n){return (n||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"})}
+function dt(s){if(!s)return"";var p=s.split("-");return p[2]+"/"+p[1]+"/"+p[0]}
+function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+function gravar(q){try{localStorage.setItem(KEY,JSON.stringify(D));return true}catch(e){if(!q)alert("Não foi possível salvar. O espaço do aparelho pode estar cheio.");return false}}
+function cid(nome){nome=nome.trim();var k=nome.toLowerCase();var c=D.clientes.filter(function(x){return x.nome.toLowerCase()===k})[0];if(!c){c={id:Date.now()+Math.floor(Math.random()*1000),nome:nome};D.clientes.push(c)}return c.id}
+function nomeC(id){var c=D.clientes.filter(function(x){return x.id===id})[0];return c?c.nome:""}
+function itensDe(id){return D.itens.filter(function(i){return i.clienteId===id})}
+function sum(a,f){return a.reduce(function(s,i){return s+f(i)},0)}
+function hoje(){var d=new Date();return d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2)}
+function r2(x){return Math.round(x*100)/100}
+function rec(i){return sum(((i.pag||{}).pagos)||[],function(p){return p.v||0})}
+function agg(a){a=a.filter(function(i){return !i.cancel});var v=sum(a,function(i){return i.vv||0}),r=sum(a,rec);return{v:v,r:r,a:v-r,l:v-sum(a,function(i){return i.vf||0}),ent:a.filter(function(i){return !i.entregue}).length}}
+function norm(i){
+  var p=i.pag||{};if(p.pagos)return;var n=p.parc&&p.parc.length,pg=[];
+  if(p.modo==="parcelado"&&n){p.parc.forEach(function(x){if(x)pg.push({v:r2((i.vv||0)/n),d:""})});i.pag={modo:"parcelado",n:n,pagos:pg}}
+  else i.pag={modo:"avista",n:1,pagos:p.pago?[{v:i.vv||0,d:""}]:[]};
+}
+function carregar(){
+  try{var s=localStorage.getItem(KEY);if(s){D=JSON.parse(s);D.itens.forEach(norm);return}}catch(e){}
+  try{var o=JSON.parse(localStorage.getItem(OLD)||"[]");
+    o.forEach(function(i){i.clienteId=cid(i.cliente||"Sem nome");delete i.cliente;i.pag={modo:"avista",n:1,pagos:[]};D.itens.push(i)});
+    if(o.length)gravar(true)}catch(e){}
+}
+function limpar(){D.clientes=D.clientes.filter(function(c){return itensDe(c.id).length});if(vista!==null&&!nomeC(vista))vista=null}
+
+function payHTML(i){
+  var p=i.pag,r=rec(i),vv=i.vv||0,f=vv-r,h="";
+  if(p.modo==="parcelado")h+='<span>Parcelado em '+p.n+'x de '+brl(vv/p.n)+'</span>';
+  h+='<span>Pago '+brl(r)+' de '+brl(vv)+'</span>';
+  h+=f>0.005?'<span class="tag t1">Falta '+brl(f)+'</span>':f<-0.005?'<span class="tag t3">Pago a mais '+brl(-f)+'</span>':'<span class="tag t3">✓ Quitado</span>';
+  h+='<div>';
+  p.pagos.forEach(function(x,j){h+='<button class="chip on" data-act="ep" data-id="'+i.id+'" data-i="'+j+'">'+brl(x.v)+(x.d?' · '+dt(x.d).slice(0,5):'')+'</button>'});
+  h+='<button class="chip" data-act="np" data-id="'+i.id+'">+ Registrar pagamento</button></div>';
+  return h;
+}
+function trocaHTML(i){
+  var t=i.troca,h='<div style="margin-top:6px">';
+  if(t&&!t.resolvida)h+='<span class="tag t1">Troca pendente: '+esc(t.motivo)+'</span>'+(t.obs?'<span>'+esc(t.obs)+'</span>':'')+'<button class="chip on" data-act="tr_ok" data-id="'+i.id+'">✓ Troca resolvida</button><button class="chip" data-act="tr" data-id="'+i.id+'">Editar troca</button>';
+  else{if(t&&t.resolvida)h+='<span class="tag t3">Troca resolvida em '+dt(t.resolvida)+'</span>';h+='<button class="chip" data-act="tr" data-id="'+i.id+'">Pedir troca</button>'}
+  return h+'<button class="chip" data-act="canc" data-id="'+i.id+'">Cancelar peça</button></div>';
+}
+function cancHTML(i,full){
+  var r=rec(i),c=i.cancel;
+  return '<div class="item" data-id="'+i.id+'" style="opacity:.8">'+(i.foto?'<img src="'+i.foto+'" alt="">':'<div class="ph">sem foto</div>')+'<div class="inf">'+(full?'<b>'+esc(nomeC(i.clienteId))+'</b>':'')+(i.desc?'<span>'+esc(i.desc)+'</span>':'')+'<span>Buscar em: '+esc(i.forn)+'</span><span class="tag" style="background:var(--bd);color:var(--mut)">Cancelada'+(c.data?' em '+dt(c.data).slice(0,5):'')+'</span>'+(c.motivo?'<span>'+esc(c.motivo)+'</span>':'')+(r>0.005?'<span class="tag t1">Já recebido '+brl(r)+' · lembrar de devolver</span>':'')+'<div><button class="chip" data-act="reat" data-id="'+i.id+'">Reativar peça</button></div></div></div>';
+}
+function itemHTML(i){
+  if(i.cancel)return cancHTML(i,false);
+  var lu=(i.vv||0)-(i.vf||0);
+  var tg=i.entregue?'<span class="tag t3">Entregue em '+dt(i.entregue)+'</span>':i.retirada?'<span class="tag t2">Retirado em '+dt(i.retirada)+' · falta entregar</span><button class="chip" data-act="unret" data-id="'+i.id+'">Desfazer retirada</button>':'<span class="tag t1">Falta buscar</span>';
+  return '<div class="item" data-id="'+i.id+'">'+(i.foto?'<img src="'+i.foto+'" alt="">':'<div class="ph">sem foto</div>')+
+  '<div class="inf"><span>Buscar em: '+esc(i.forn)+'</span>'+(i.desc?'<span>'+esc(i.desc)+'</span>':'')+'<span>'+brl(i.vf)+' → <b style="display:inline">'+brl(i.vv)+'</b> · <span class="lucro'+(lu<0?' neg':'')+'" style="display:inline">'+brl(lu)+'</span></span>'+tg+'<div style="margin-top:6px;padding-top:6px;border-top:1px solid var(--bd)">'+payHTML(i)+'</div>'+trocaHTML(i)+'</div></div>';
+}
+function render(){
+  var cv=vista!==null;
+  $("home").style.display=cv?"none":"block";$("cli").style.display=cv?"block":"none";$("voltar").style.display=cv?"inline-block":"none";
+  $("tt").textContent=cv?nomeC(vista):"Loja Clau";
+  if(cv){
+    var its=itensDe(vista).sort(function(a,b){return b.id-a.id}),g=agg(its);
+    $("cV").textContent=brl(g.v);$("cR").textContent=brl(g.r);$("cA").textContent=brl(g.a);
+    $("itens").innerHTML=its.map(itemHTML).join("")||'<div class="vazio">Nenhuma mercadoria.</div>';
+    return;
+  }
+  var all=agg(D.itens);
+  $("rV").textContent=brl(all.v);$("rA").textContent=brl(all.a);$("rL").textContent=brl(all.l);$("rL").className="lucro"+(all.l<0?" neg":"");
+  var pend=D.itens.filter(function(i){return !i.retirada&&!i.entregue&&!i.cancel});
+  $("tbBuscar").textContent="A buscar"+(pend.length?" ("+pend.length+")":"");
+  var tr=D.itens.filter(function(i){return i.troca&&!i.troca.resolvida&&!i.cancel});
+  $("tbTrocas").textContent="Trocas"+(tr.length?" ("+tr.length+")":"");
+  var cn=D.itens.filter(function(i){return i.cancel});
+  $("tbCanc").textContent="Canceladas"+(cn.length?" ("+cn.length+")":"");
+  var q=$("q").value.toLowerCase(),h="";
+  if(filtro==="canc"){
+    cn.filter(function(i){return !q||(nomeC(i.clienteId)+" "+i.forn).toLowerCase().indexOf(q)>-1}).sort(function(a,b){return b.id-a.id}).forEach(function(i){h+=cancHTML(i,true)});
+    $("lista").innerHTML=h||'<div class="vazio">Nenhuma peça cancelada.</div>';
+    return;
+  }
+  if(filtro==="trocas"){
+    tr.filter(function(i){return !q||(nomeC(i.clienteId)+" "+i.forn).toLowerCase().indexOf(q)>-1}).forEach(function(i){
+      h+='<div class="item" data-id="'+i.id+'">'+(i.foto?'<img src="'+i.foto+'" alt="">':'<div class="ph">sem foto</div>')+'<div class="inf"><b>'+esc(nomeC(i.clienteId))+'</b>'+(i.desc?'<span>'+esc(i.desc)+'</span>':'')+'<span>Buscar em: '+esc(i.forn)+'</span><span class="tag t1">'+esc(i.troca.motivo)+(i.troca.data?' · desde '+dt(i.troca.data).slice(0,5):'')+'</span>'+(i.troca.obs?'<span>'+esc(i.troca.obs)+'</span>':'')+'<div><button class="chip on" data-act="tr_ok" data-id="'+i.id+'">✓ Troca resolvida</button><button class="chip" data-act="tr" data-id="'+i.id+'">Editar</button></div></div></div>'});
+    $("lista").innerHTML=h||'<div class="vazio">Nenhuma troca pendente.</div>';
+    return;
+  }
+  if(filtro==="buscar"){
+    var gp={};
+    pend.filter(function(i){return !q||(nomeC(i.clienteId)+" "+i.forn).toLowerCase().indexOf(q)>-1}).forEach(function(i){var k=(i.forn||"").trim()||"Sem fornecedor";(gp[k]=gp[k]||[]).push(i)});
+    Object.keys(gp).sort().forEach(function(k){var a=gp[k];
+      h+='<div style="margin:14px 16px 0;font-weight:bold">'+esc(k)+' <span style="font-weight:normal;color:var(--mut);font-size:13px">· '+a.length+(a.length===1?' item':' itens')+' · custo '+brl(sum(a,function(i){return i.vf||0}))+'</span></div>';
+      a.forEach(function(i){h+='<div class="item" data-id="'+i.id+'">'+(i.foto?'<img src="'+i.foto+'" alt="">':'<div class="ph">sem foto</div>')+'<div class="inf"><b>'+esc(nomeC(i.clienteId))+'</b><span>'+brl(i.vf)+' no fornecedor</span>'+(i.desc?'<span>'+esc(i.desc)+'</span>':'')+'<div><button class="chip on" data-act="ret" data-id="'+i.id+'">✓ Já retirei</button></div></div></div>'});
+    });
+    $("lista").innerHTML=h||'<div class="vazio">Nada para buscar. Tudo já foi retirado.</div>';
+    return;
+  }
+  var cs=D.clientes.map(function(c){var a=itensDe(c.id);return{c:c,a:a,g:agg(a),last:Math.max.apply(null,a.map(function(i){return i.id}).concat([0]))}})
+   .filter(function(x){
+     if(filtro==="receber"&&x.g.a<0.005)return false;
+     if(filtro==="entregar"&&x.g.ent===0)return false;
+     return !q||(x.c.nome+" "+x.a.map(function(i){return i.forn}).join(" ")).toLowerCase().indexOf(q)>-1;
+   }).sort(function(a,b){return b.last-a.last});
+  cs.forEach(function(x){
+    var f=x.a.filter(function(i){return i.foto})[0],n=x.a.filter(function(i){return !i.cancel}).length;
+    h+='<div class="item" data-c="'+x.c.id+'">'+(f?'<img src="'+f.foto+'" alt="">':'<div class="ph">sem foto</div>')+
+    '<div class="inf"><b>'+esc(x.c.nome)+'</b><span>'+n+(n===1?' mercadoria':' mercadorias')+' · Vendido '+brl(x.g.v)+'</span>'+
+    (x.g.a>0.005?'<span class="tag t1">Falta receber '+brl(x.g.a)+'</span>':x.g.a<-0.005?'<span class="tag t3">Pago a mais '+brl(-x.g.a)+'</span>':'<span class="tag t3">Tudo pago</span>')+
+    (x.g.ent?'<span class="tag t2">'+x.g.ent+' a entregar</span>':'')+'</div><div class="seta">›</div></div>';
+  });
+  $("lista").innerHTML=h||'<div class="vazio">Nada por aqui ainda.<br>Toque em <b>+ Nova encomenda</b> para cadastrar.</div>';
+}
+
+/* formulário */
+function prevFoto(){$("prev").outerHTML=foto?'<img id="prev" src="'+foto+'" alt="">':'<div id="prev" class="ph">sem foto</div>'}
+function lucroPrev(){var l=(parseFloat($("vv").value)||0)-(parseFloat($("vf").value)||0);$("lucroVis").innerHTML=($("vv").value||$("vf").value)?'Lucro: <span class="lucro'+(l<0?' neg':'')+'">'+brl(l)+'</span>':""}
+function parcUI(){
+  $("parcBox").style.display=$("pg").value==="parc"?"block":"none";
+  var n=Math.max(2,Math.min(36,parseInt($("np").value)||2)),v=(parseFloat($("vv").value)||0)/n;
+  $("parcInfo").textContent=v?n+" parcelas de "+brl(v):"";
+}
+function abrir(id,nome){
+  editId=id||null;var i=id?D.itens.filter(function(x){return x.id===id})[0]:{};
+  $("mt").textContent=id?"Editar mercadoria":"Nova encomenda";
+  $("dl").innerHTML=D.clientes.map(function(c){return '<option value="'+esc(c.nome)+'">'}).join("");
+  $("cliente").value=id?nomeC(i.clienteId):(nome||"");$("forn").value=i.forn||"";
+  $("vf").value=i.vf!=null?i.vf:"";$("vv").value=i.vv!=null?i.vv:"";
+  $("de").value=i.entregue||"";$("desc").value=i.desc||"";
+  var p=i.pag||{modo:"avista",n:2,pagos:[]};
+  $("pg").value=p.modo==="parcelado"?"parc":"avista";$("np").value=p.modo==="parcelado"?p.n:2;$("jp").value="";
+  $("jaBox").style.display=id?"none":"block";$("pgDica").style.display=id?"block":"none";
+  foto=i.foto||"";prevFoto();lucroPrev();parcUI();
+  $("excluir").style.display=id?"block":"none";
+  $("modal").classList.add("on");
+}
+function reduzir(file,cb){
+  var r=new FileReader();
+  r.onload=function(){var im=new Image();im.onload=function(){
+    var s=Math.min(1,640/Math.max(im.width,im.height)),c=document.createElement("canvas");
+    c.width=im.width*s;c.height=im.height*s;c.getContext("2d").drawImage(im,0,0,c.width,c.height);
+    cb(c.toDataURL("image/jpeg",.72))};im.src=r.result};
+  r.readAsDataURL(file);
+}
+$("pick").onclick=function(){$("file").click()};
+$("file").onchange=function(e){var f=e.target.files[0];if(!f)return;reduzir(f,function(d){foto=d;prevFoto()});e.target.value=""};
+$("novo").onclick=function(){abrir(null,vista!==null?nomeC(vista):"")};
+$("fechar").onclick=function(){$("modal").classList.remove("on")};
+$("vf").oninput=lucroPrev;
+$("vv").oninput=function(){lucroPrev();parcUI()};
+$("pg").onchange=parcUI;$("np").oninput=parcUI;
+$("salvar").onclick=function(){
+  var c=$("cliente").value.trim();
+  if(!c){alert("Digite o nome do cliente.");return}
+  var parc=$("pg").value==="parc",n=parc?Math.max(2,Math.min(36,parseInt($("np").value)||2)):1;
+  var old=editId?D.itens.filter(function(x){return x.id===editId})[0]:null,pagos=old?old.pag.pagos:[];
+  var jp=parseFloat($("jp").value)||0;if(!editId&&jp>0)pagos=[{v:jp,d:hoje()}];
+  var o={clienteId:cid(c),forn:$("forn").value.trim(),foto:foto,vf:parseFloat($("vf").value)||0,vv:parseFloat($("vv").value)||0,desc:$("desc").value.trim(),entregue:$("de").value,pag:{modo:parc?"parcelado":"avista",n:n,pagos:pagos}};
+  if(editId){D.itens=D.itens.map(function(x){return x.id===editId?Object.assign({},x,o):x})}
+  else{o.id=Date.now();D.itens.push(o)}
+  if(vista!==null)vista=o.clienteId;
+  limpar();
+  if(gravar()){$("modal").classList.remove("on");render()}
+};
+$("excluir").onclick=function(){
+  if(confirm("Excluir esta mercadoria?")){D.itens=D.itens.filter(function(x){return x.id!==editId});limpar();gravar();$("modal").classList.remove("on");render()}
+};
+
+/* listas */
+$("lista").onclick=function(e){
+  var b=e.target.closest("button[data-act]");
+  if(b){var a=b.dataset.act,it=itemPor(+b.dataset.id);
+    if(a==="tr_ok"){it.troca.resolvida=hoje();gravar();render();return}
+    if(a==="tr"){abrirTroca(it.id);return}
+    if(a==="reat"){it.cancel=null;gravar();render();return}
+    it.retirada=hoje();gravar();render();mostrarUndo(it.id);return}
+  var t=e.target.closest(".item");if(!t)return;
+  if(t.dataset.id){abrir(parseInt(t.dataset.id));return}
+  vista=parseInt(t.dataset.c);render();window.scrollTo(0,0);
+};
+var payId=null,payIdx=null;
+function itemPor(id){return D.itens.filter(function(x){return x.id===id})[0]}
+function abrirPag(id,idx){
+  payId=id;payIdx=idx;var i=itemPor(id),r=rec(i),f=(i.vv||0)-r,p=i.pag;
+  $("pmt").textContent=idx!==null?"Editar pagamento":"Registrar pagamento";
+  $("pmInfo").innerHTML="Total "+brl(i.vv)+" · Já pago "+brl(r)+" · Falta "+brl(Math.max(f,0))+(p.modo==="parcelado"?"<br>Parcela: "+brl((i.vv||0)/p.n):"");
+  if(idx!==null){$("pv").value=p.pagos[idx].v;$("pd").value=p.pagos[idx].d||""}
+  else{var sug=p.modo==="parcelado"?(f>0.005?Math.min((i.vv||0)/p.n,f):(i.vv||0)/p.n):Math.max(f,0);$("pv").value=sug?r2(sug):"";$("pd").value=hoje()}
+  $("pmExcluir").style.display=idx!==null?"block":"none";
+  $("pm").classList.add("on");
+}
+$("itens").onclick=function(e){
+  var b=e.target.closest("button[data-act]");
+  if(b&&b.dataset.act==="canc"){abrirCanc(+b.dataset.id);return}
+  if(b&&b.dataset.act==="reat"){itemPor(+b.dataset.id).cancel=null;gravar();render();return}
+  if(b&&b.dataset.act==="tr"){abrirTroca(+b.dataset.id);return}
+  if(b&&b.dataset.act==="tr_ok"){itemPor(+b.dataset.id).troca.resolvida=hoje();gravar();render();return}
+  if(b&&b.dataset.act==="unret"){var u=itemPor(+b.dataset.id);u.retirada="";gravar();render();return}
+  if(b){abrirPag(+b.dataset.id,b.dataset.act==="ep"?+b.dataset.i:null);return}
+  var t=e.target.closest(".item");if(t)abrir(parseInt(t.dataset.id));
+};
+$("pmFechar").onclick=function(){$("pm").classList.remove("on")};
+$("pmSalvar").onclick=function(){
+  var v=parseFloat($("pv").value);
+  if(!(v>0)){alert("Digite o valor que o cliente pagou.");return}
+  var i=itemPor(payId),x={v:r2(v),d:$("pd").value};
+  if(payIdx!==null)i.pag.pagos[payIdx]=x;else i.pag.pagos.push(x);
+  if(gravar()){$("pm").classList.remove("on");render()}
+};
+$("pmExcluir").onclick=function(){
+  if(confirm("Excluir este pagamento?")){itemPor(payId).pag.pagos.splice(payIdx,1);gravar();$("pm").classList.remove("on");render()}
+};
+$("voltar").onclick=function(){vista=null;render()};
+var cancId=null;
+function abrirCanc(id){
+  cancId=id;var i=itemPor(id),r=rec(i);
+  $("cmInfo").innerHTML=esc(nomeC(i.clienteId))+(i.desc?" · "+esc(i.desc):"")+(r>0.005?"<br>Atenção: este cliente já pagou "+brl(r)+". Lembre de devolver, se for o caso.":"");
+  $("cmot").value="";$("cm").classList.add("on");
+}
+$("cmFechar").onclick=function(){$("cm").classList.remove("on")};
+$("cmSalvar").onclick=function(){
+  itemPor(cancId).cancel={data:hoje(),motivo:$("cmot").value.trim()};
+  if(gravar()){$("cm").classList.remove("on");render()}
+};
+var trocaId=null;
+function abrirTroca(id){
+  trocaId=id;var i=itemPor(id),t=i.troca&&!i.troca.resolvida?i.troca:null;
+  $("tmInfo").textContent=nomeC(i.clienteId)+(i.desc?" · "+i.desc:"");
+  $("tmot").value=t?t.motivo:"Defeito";$("tobs").value=t?(t.obs||""):"";
+  $("tmCancel").style.display=t?"block":"none";$("tm").classList.add("on");
+}
+$("tmFechar").onclick=function(){$("tm").classList.remove("on")};
+$("tmSalvar").onclick=function(){
+  var i=itemPor(trocaId),pend=i.troca&&!i.troca.resolvida;
+  i.troca={motivo:$("tmot").value,obs:$("tobs").value.trim(),data:pend?i.troca.data:hoje(),resolvida:""};
+  if(gravar()){$("tm").classList.remove("on");render()}
+};
+$("tmCancel").onclick=function(){
+  if(confirm("Cancelar o pedido de troca?")){itemPor(trocaId).troca=null;gravar();$("tm").classList.remove("on");render()}
+};
+var undoT=null,undoId=null;
+function mostrarUndo(id){undoId=id;$("undo").style.display="flex";clearTimeout(undoT);undoT=setTimeout(function(){$("undo").style.display="none"},6000)}
+$("undoBtn").onclick=function(){var it=itemPor(undoId);if(it){it.retirada="";gravar();render()}$("undo").style.display="none"};
+$("q").oninput=render;
+$("tabs").onclick=function(e){var b=e.target.closest("button");if(!b)return;filtro=b.dataset.f;
+  [].forEach.call($("tabs").children,function(x){x.classList.toggle("on",x===b)});render()};
+carregar();render();
+</script>
+</body>
+</html>
